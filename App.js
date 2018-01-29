@@ -2,7 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, View, Button, TouchableOpacity } from 'react-native';
 
 import Icon from '@expo/vector-icons/MaterialCommunityIcons'
-import { SettingsRow } from './dist'
+import { SettingsRow } from 'react-native-animated-components'
 
 export default class App extends React.Component {
   render() {
