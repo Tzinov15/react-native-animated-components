@@ -1,6 +1,9 @@
 import React from 'react'
-import { View, Text, StyleSheet, Dimensions, Animated } from 'react-native'
+import { View, Text, StyleSheet, Dimensions, Animated, TouchableOpacity } from 'react-native'
 import Color from 'color'
+
+import Icon from '@expo/vector-icons/MaterialCommunityIcons'
+import Ionicon from '@expo/vector-icons/Ionicons'
 
 const WIDTH = Dimensions.get('window').width
 
@@ -9,9 +12,11 @@ export interface Props {
   rowHeight: number
   numberOfIcons: number
   circleColor: string
+  icons: [string]
 }
 
 export interface State {
+  circlesOpen: boolean
 }
 
 export const CIRCLE_SIZE = 40
@@ -19,9 +24,15 @@ export const MARGIN = 10
 
 export default class SettingsRow extends React.Component<Props, State> {
   animatedValues: any
+  animatedBGValue: any
   constructor(props: Props) {
     super(props)
+    this.state = {
+      circlesOpen: false
+    }
+    this.openCircles = this.openCircles.bind(this)
     this.animatedValues = this.generateAnimatedValues(this.props.numberOfIcons)
+    this.animatedBGValue = new Animated.Value(0)
   }
   generateAnimatedValues = (quantity: number) => {
 
@@ -33,33 +44,43 @@ export default class SettingsRow extends React.Component<Props, State> {
   }
   Circle(index: number, color: string) {
     return (
-      <Animated.View key={index} style={{
-        backgroundColor: Color(color).darken(1.0 / this.props.numberOfIcons * index),
-        position: 'absolute',
-        left: (index * (CIRCLE_SIZE + MARGIN)),
-        width: CIRCLE_SIZE,
-        height: CIRCLE_SIZE,
-        alignSelf: 'center',
-        borderRadius: CIRCLE_SIZE / 2,
-        transform: [
-          {
-            scale: this.animatedValues && this.animatedValues[index].interpolate({
-              inputRange: [0, 1],
-              outputRange: [0, 1]
-            })
-          }
-        ]
-      }} />
+      <TouchableOpacity
+        key={index}
+        style={{
+          position: 'absolute',
+          left: MARGIN + (index * (CIRCLE_SIZE + MARGIN)),
+          alignSelf: 'center',
+        }}
+        onPress={() => alert(`Circle number ${index + 1} pressed`)}>
+        <Animated.View style={{
+          backgroundColor: Color(color).darken(1.0 / this.props.numberOfIcons * index),
+          borderRadius: CIRCLE_SIZE / 2,
+          width: CIRCLE_SIZE,
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: CIRCLE_SIZE,
+          transform: [
+            {
+              scale: this.animatedValues && this.animatedValues[index].interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, 1]
+              })
+            }
+          ]
+        }} >
+          <Icon size={25} name={this.props.icons[index]} style={{ color: 'white' }} />
+        </Animated.View>
+      </TouchableOpacity>
     )
   }
 
-  animations = () => {
+  animations = (value: number) => {
     const response = []
     for (let i = 0; i < this.props.numberOfIcons; i++) {
       response.push(
         Animated.spring(this.animatedValues[i], {
-          toValue: 1,
-          bounciness: 16,
+          toValue: value,
+          bounciness: value ? 15 : 0,
           useNativeDriver: true
         })
       )
@@ -67,32 +88,29 @@ export default class SettingsRow extends React.Component<Props, State> {
     return response
   }
 
-  componentDidMount() {
-    Animated.sequence([
-      Animated.delay(300),
-      Animated.stagger(50, this.animations())
-      // Animated.stagger(50, [
-      //   Animated.spring(this.animatedValues[0], {
-      //     toValue: 1,
-      //     bounciness: 16,
-      //     useNativeDriver: true
-      //   }),
-      //   Animated.spring(this.animatedValues[1], {
-      //     toValue: 1,
-      //     bounciness: 16,
-      //     useNativeDriver: true
-      //   }),
-      //   Animated.spring(this.animatedValues[2], {
-      //     toValue: 1,
-      //     bounciness: 16,
-      //     useNativeDriver: true
-      //   }),
-      //   Animated.spring(this.animatedValues[3], {
-      //     toValue: 1,
-      //     bounciness: 16,
-      //     useNativeDriver: true
-      //   }),
-      // ])
+  openCircles() {
+    this.setState({ circlesOpen: true })
+    Animated.parallel([
+      Animated.timing(this.animatedBGValue, {
+        toValue: 1,
+        duration: 300
+      }),
+      Animated.sequence([
+        Animated.stagger(50, this.animations(1))
+      ])
+    ]).start()
+  }
+
+  closeCircles() {
+    this.setState({ circlesOpen: false })
+    Animated.parallel([
+      Animated.timing(this.animatedBGValue, {
+        toValue: 0,
+        duration: 300
+      }),
+      Animated.sequence([
+        Animated.stagger(50, this.animations(0).reverse())
+      ])
     ]).start()
   }
 
@@ -104,15 +122,60 @@ export default class SettingsRow extends React.Component<Props, State> {
     return response
   }
 
+  ToggleButton = () => {
+    return (
+      <TouchableOpacity style={{
+        position: 'absolute',
+        right: 0,
+        backgroundColor: 'transparent',
+        marginHorizontal: 10
+      }}
+        onPress={() => this.state.circlesOpen ? this.closeCircles() : this.openCircles()}
+      >
+        {this.state.circlesOpen ?
+          <Icon size={30} name="close-circle-outline" style={{ color: 'rgb(188, 188, 188)' }} /> :
+          <Icon size={30} name="dots-horizontal" style={{ color: 'rgb(73, 73, 73)' }} />
+        }
+      </TouchableOpacity>
+    )
+  }
+
+  RenderChildren() {
+    return (
+      <Animated.View
+
+        style={{
+          width: .7 * WIDTH,
+          transform: [
+            {
+              scale: this.animatedValues && this.animatedValues[0].interpolate({
+                inputRange: [0, 1],
+                outputRange: [1, 0]
+              })
+            }
+          ]
+        }}
+      >
+        {this.props.children}
+      </Animated.View>
+    )
+  }
+
   render() {
     const { rowHeight, rowBackgroundColor } = this.props
-    return <View style={{
+    return <Animated.View style={{
       width: WIDTH,
       height: rowHeight,
+      marginVertical: 10,
       justifyContent: 'center',
-      backgroundColor: rowBackgroundColor
+      backgroundColor: this.animatedBGValue.interpolate({
+        inputRange: [0, 1],
+        outputRange: [rowBackgroundColor, Color(rowBackgroundColor).darken(.5)]
+      })
     }} >
       {this.Circles()}
-    </View>
+      {this.ToggleButton()}
+      {this.RenderChildren()}
+    </Animated.View>
   }
 }
