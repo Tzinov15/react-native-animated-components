@@ -68,7 +68,7 @@ export default class App extends React.Component {
             padding: 10
           }}
           onPress={() => alert('hello')}>
-          <View> <Text style={{ color: '#33a7fa' }}>A filler button</Text> </View>
+          <View><Text style={{ color: '#33a7fa' }}>A filler button</Text></View>
         </TouchableOpacity>
       </SettingsRow>
     </View>
